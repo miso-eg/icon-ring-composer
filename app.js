@@ -14,7 +14,7 @@ function render(context=ctx,n=canvas.width){
   context.clearRect(0,0,n,n);
   if($('bgMode').value==='color'){context.fillStyle=$('bgColor').value;context.fillRect(0,0,n,n);}
   context.save();
-  if($('clip').checked){context.beginPath();context.arc(n/2,n/2,n/2,0,Math.PI*2);context.clip();}
+  if($('clip').checked){context.beginPath();context.arc(n/2,n/2,n*value('clipSize')/200,0,Math.PI*2);context.clip();}
   drawLayer(context,'icon',n);context.restore();
   drawLayer(context,'ring',n);
 }
@@ -29,9 +29,9 @@ async function load(name,file){
   }catch{if(version===versions[name])$('status').textContent='画像を読み込めませんでした。別の画像を選んでください。';}
   finally{URL.revokeObjectURL(url);}
 }
-function update(){for(const name of ['icon','ring']){$(name+'ScaleValue').textContent=value(name+'Scale')+'%';$(name+'AngleValue').textContent=value(name+'Angle')+'°';}$('bgColor').disabled=$('bgMode').value==='transparent';render();}
+function update(){for(const name of ['icon','ring']){$(name+'ScaleValue').textContent=value(name+'Scale')+'%';$(name+'AngleValue').textContent=value(name+'Angle')+'°';}$('clipSizeValue').textContent=value('clipSize')+'%';$('clipSize').disabled=!$('clip').checked;$('bgColor').disabled=$('bgMode').value==='transparent';render();}
 for(const name of ['icon','ring'])$(name+'File').addEventListener('change',e=>load(name,e.target.files[0]));
-for(const id of ['iconScale','iconAngle','ringScale','ringAngle','clip','bgMode','bgColor'])$(id).addEventListener('input',update);
+for(const id of ['iconScale','iconAngle','ringScale','ringAngle','clip','clipSize','bgMode','bgColor'])$(id).addEventListener('input',update);
 $('reset').addEventListener('click',()=>{const name=$('target').value;layers[name].x=layers[name].y=0;$(name+'Scale').value=100;$(name+'Angle').value=0;update();});
 const pointers=new Map();
 let gesture=null;
