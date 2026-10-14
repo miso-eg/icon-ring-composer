@@ -33,10 +33,36 @@ function update(){for(const name of ['icon','ring']){$(name+'ScaleValue').textCo
 for(const name of ['icon','ring'])$(name+'File').addEventListener('change',e=>load(name,e.target.files[0]));
 for(const id of ['iconScale','iconAngle','ringScale','ringAngle','clip','bgMode','bgColor'])$(id).addEventListener('input',update);
 $('reset').addEventListener('click',()=>{const name=$('target').value;layers[name].x=layers[name].y=0;$(name+'Scale').value=100;$(name+'Angle').value=0;update();});
-let drag=null;
-canvas.addEventListener('pointerdown',e=>{const name=$('target').value;if(!layers[name].image)return;drag={id:e.pointerId,name,x:e.clientX,y:e.clientY,lx:layers[name].x,ly:layers[name].y};canvas.setPointerCapture(e.pointerId);});
-canvas.addEventListener('pointermove',e=>{if(!drag||e.pointerId!==drag.id)return;const rect=canvas.getBoundingClientRect();layers[drag.name].x=drag.lx+(e.clientX-drag.x)/rect.width;layers[drag.name].y=drag.ly+(e.clientY-drag.y)/rect.height;render();});
-for(const type of ['pointerup','pointercancel','lostpointercapture'])canvas.addEventListener(type,()=>drag=null);
+const pointers=new Map();
+let gesture=null;
+function measurements(){
+  const points=[...pointers.values()].slice(0,2),a=points[0],b=points[1]||a;
+  return {x:(a.x+b.x)/2,y:(a.y+b.y)/2,distance:Math.hypot(b.x-a.x,b.y-a.y),angle:Math.atan2(b.y-a.y,b.x-a.x)};
+}
+function beginGesture(){
+  if(!pointers.size){gesture=null;return;}
+  const name=gesture?.name||$('target').value;
+  gesture={name,...measurements(),lx:layers[name].x,ly:layers[name].y,scale:value(name+'Scale'),rotation:value(name+'Angle')};
+}
+canvas.addEventListener('pointerdown',e=>{
+  if(e.pointerType==='mouse'&&e.button!==0)return;
+  if(!layers[gesture?.name||$('target').value].image)return;
+  pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});canvas.setPointerCapture(e.pointerId);beginGesture();
+});
+canvas.addEventListener('pointermove',e=>{
+  if(!pointers.has(e.pointerId)||!gesture)return;
+  pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  const current=measurements(),rect=canvas.getBoundingClientRect(),name=gesture.name;
+  layers[name].x=gesture.lx+(current.x-gesture.x)/rect.width;
+  layers[name].y=gesture.ly+(current.y-gesture.y)/rect.height;
+  if(pointers.size>=2&&gesture.distance>0){
+    $(name+'Scale').value=Math.max(10,Math.min(300,gesture.scale*current.distance/gesture.distance));
+    const delta=Math.atan2(Math.sin(current.angle-gesture.angle),Math.cos(current.angle-gesture.angle))*180/Math.PI;
+    $(name+'Angle').value=((gesture.rotation+delta+180)%360+360)%360-180;
+  }
+  update();
+});
+for(const type of ['pointerup','pointercancel','lostpointercapture'])canvas.addEventListener(type,e=>{if(pointers.delete(e.pointerId))beginGesture();});
 let exportFile=null, exportUrl=null;
 $('showImage').addEventListener('click',()=>{
   if(!layers.icon.image)return;
