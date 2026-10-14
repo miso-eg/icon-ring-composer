@@ -5,9 +5,9 @@ const layers = {icon:{image:null,x:0,y:0},ring:{image:null,x:0,y:0}};
 const value = id => Number($(id).value);
 function drawLayer(context,name,n){
   const layer=layers[name]; if(!layer.image)return;
-  const image=layer.image, scale=name==='ring'?1:value('iconScale')/100;
+  const image=layer.image, scale=value(name+'Scale')/100;
   const fit=name==='icon'?Math.max(n/image.width,n/image.height):Math.min(n/image.width,n/image.height);
-  context.save();context.translate(n/2+layer.x*n,n/2+layer.y*n);context.rotate(name==='ring'?0:value('iconAngle')*Math.PI/180);
+  context.save();context.translate(n/2+layer.x*n,n/2+layer.y*n);context.rotate(value(name+'Angle')*Math.PI/180);
   context.drawImage(image,-image.width*fit*scale/2,-image.height*fit*scale/2,image.width*fit*scale,image.height*fit*scale);context.restore();
 }
 function render(context=ctx,n=canvas.width){
@@ -24,16 +24,15 @@ async function load(name,file){
   if(!['image/png','image/jpeg','image/webp'].includes(file.type)){ $('status').textContent='PNG・JPEG・WebPの画像を選んでください。';return; }
   const url=URL.createObjectURL(file),image=new Image();
   try{image.src=url;await image.decode();if(version!==versions[name])return;
-    layers[name]={image,x:0,y:0};if(name==='icon'){$('iconScale').value=100;$('iconAngle').value=0;}$('target').value=name;update();
+    layers[name]={image,x:0,y:0};$(name+'Scale').value=100;$(name+'Angle').value=0;$('target').value=name;update();
     $('showImage').disabled=!layers.icon.image;$('status').textContent=layers.icon.image?'画像を読み込みました。位置やサイズを調整できます。':'アイコン画像を選んでください。';
   }catch{if(version===versions[name])$('status').textContent='画像を読み込めませんでした。別の画像を選んでください。';}
   finally{URL.revokeObjectURL(url);}
 }
-function update(){ $('iconScaleValue').textContent=value('iconScale')+'%';$('iconAngleValue').textContent=value('iconAngle')+'°';$('bgColor').disabled=$('bgMode').value==='transparent';$('reset').textContent=$('target').value==='ring'?'位置をリセット':'位置・サイズをリセット';render();}
+function update(){for(const name of ['icon','ring']){$(name+'ScaleValue').textContent=value(name+'Scale')+'%';$(name+'AngleValue').textContent=value(name+'Angle')+'°';}$('bgColor').disabled=$('bgMode').value==='transparent';render();}
 for(const name of ['icon','ring'])$(name+'File').addEventListener('change',e=>load(name,e.target.files[0]));
-for(const id of ['iconScale','iconAngle','clip','bgMode','bgColor'])$(id).addEventListener('input',update);
-$('reset').addEventListener('click',()=>{const name=$('target').value;layers[name].x=layers[name].y=0;if(name==='icon'){$('iconScale').value=100;$('iconAngle').value=0;}update();});
-$('target').addEventListener('change',()=>{$('reset').textContent=$('target').value==='ring'?'位置をリセット':'位置・サイズをリセット';});
+for(const id of ['iconScale','iconAngle','ringScale','ringAngle','clip','bgMode','bgColor'])$(id).addEventListener('input',update);
+$('reset').addEventListener('click',()=>{const name=$('target').value;layers[name].x=layers[name].y=0;$(name+'Scale').value=100;$(name+'Angle').value=0;update();});
 let drag=null;
 canvas.addEventListener('pointerdown',e=>{const name=$('target').value;if(!layers[name].image)return;drag={id:e.pointerId,name,x:e.clientX,y:e.clientY,lx:layers[name].x,ly:layers[name].y};canvas.setPointerCapture(e.pointerId);});
 canvas.addEventListener('pointermove',e=>{if(!drag||e.pointerId!==drag.id)return;const rect=canvas.getBoundingClientRect();layers[drag.name].x=drag.lx+(e.clientX-drag.x)/rect.width;layers[drag.name].y=drag.ly+(e.clientY-drag.y)/rect.height;render();});
