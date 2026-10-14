@@ -27,7 +27,7 @@ async function load(name,file){
   const url=URL.createObjectURL(file),image=new Image();
   try{image.src=url;await image.decode();if(version!==versions[name])return;
     layers[name]={image,x:0,y:0};if(name==='icon'){$('iconScale').value=100;$('iconAngle').value=0;}update();
-    $('showImage').disabled=!(layers.icon.image&&layers.ring.image);$('status').textContent=layers.icon.image&&layers.ring.image?'画像を読み込みました。位置やサイズを調整できます。':'アイコン画像とリング画像の両方を選んでください。';
+    $('showImage').disabled=!(layers.icon.image&&layers.ring.image);$('status').textContent=layers.icon.image&&layers.ring.image?'画像を読み込みました。位置やサイズを調整できます。':'アイコン画像を読み込みました。リング画像は任意で追加できます。';
   }catch{if(version===versions[name])$('status').textContent='画像を読み込めませんでした。別の画像を選んでください。';}
   finally{URL.revokeObjectURL(url);}
 }
@@ -41,7 +41,7 @@ canvas.addEventListener('pointermove',e=>{if(!drag||e.pointerId!==drag.id)return
 for(const type of ['pointerup','pointercancel','lostpointercapture'])canvas.addEventListener(type,()=>drag=null);
 let exportFile=null, exportUrl=null;
 $('showImage').addEventListener('click',()=>{
-  if(!layers.icon.image||!layers.ring.image)return;
+  if(!layers.icon.image)return;
   $('showImage').disabled=true;
   const out=document.createElement('canvas');out.width=out.height=value('size');render(out.getContext('2d'),out.width);
   out.toBlob(blob=>{
@@ -64,3 +64,5 @@ $('shareImage').addEventListener('click',async()=>{
   catch(error){$('shareStatus').textContent=error.name==='AbortError'?'共有をキャンセルしました。':'共有できませんでした。画像を長押しするか「PNGを保存」をお使いください。';}
 });
 render();
+
+removeRing.addEventListener('click',()=>{versions.ring++;layers.ring={image:null,x:0,y:0};ringFile.value='';showImage.disabled=!layers.icon.image;render();status.textContent='リング画像を削除しました。';});
