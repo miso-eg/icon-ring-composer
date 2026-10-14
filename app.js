@@ -24,17 +24,18 @@ async function load(name,file){
   if(!['image/png','image/jpeg','image/webp'].includes(file.type)){ $('status').textContent='PNG・JPEG・WebPの画像を選んでください。';return; }
   const url=URL.createObjectURL(file),image=new Image();
   try{image.src=url;await image.decode();if(version!==versions[name])return;
-    layers[name]={image,x:0,y:0};if(name==='icon'){$('iconScale').value=100;$('iconAngle').value=0;}update();
+    layers[name]={image,x:0,y:0};if(name==='icon'){$('iconScale').value=100;$('iconAngle').value=0;}$('target').value=name;update();
     $('showImage').disabled=!layers.icon.image;$('status').textContent=layers.icon.image?'画像を読み込みました。位置やサイズを調整できます。':'アイコン画像を選んでください。';
   }catch{if(version===versions[name])$('status').textContent='画像を読み込めませんでした。別の画像を選んでください。';}
   finally{URL.revokeObjectURL(url);}
 }
-function update(){ $('iconScaleValue').textContent=value('iconScale')+'%';$('iconAngleValue').textContent=value('iconAngle')+'°';$('bgColor').disabled=$('bgMode').value==='transparent';render();}
+function update(){ $('iconScaleValue').textContent=value('iconScale')+'%';$('iconAngleValue').textContent=value('iconAngle')+'°';$('bgColor').disabled=$('bgMode').value==='transparent';$('reset').textContent=$('target').value==='ring'?'位置をリセット':'位置・サイズをリセット';render();}
 for(const name of ['icon','ring'])$(name+'File').addEventListener('change',e=>load(name,e.target.files[0]));
 for(const id of ['iconScale','iconAngle','clip','bgMode','bgColor'])$(id).addEventListener('input',update);
-$('reset').addEventListener('click',()=>{layers.icon.x=layers.icon.y=0;$('iconScale').value=100;$('iconAngle').value=0;update();});
+$('reset').addEventListener('click',()=>{const name=$('target').value;layers[name].x=layers[name].y=0;if(name==='icon'){$('iconScale').value=100;$('iconAngle').value=0;}update();});
+$('target').addEventListener('change',()=>{$('reset').textContent=$('target').value==='ring'?'位置をリセット':'位置・サイズをリセット';});
 let drag=null;
-canvas.addEventListener('pointerdown',e=>{const name='icon';if(!layers.icon.image)return;drag={id:e.pointerId,name,x:e.clientX,y:e.clientY,lx:layers.icon.x,ly:layers.icon.y};canvas.setPointerCapture(e.pointerId);});
+canvas.addEventListener('pointerdown',e=>{const name=$('target').value;if(!layers[name].image)return;drag={id:e.pointerId,name,x:e.clientX,y:e.clientY,lx:layers[name].x,ly:layers[name].y};canvas.setPointerCapture(e.pointerId);});
 canvas.addEventListener('pointermove',e=>{if(!drag||e.pointerId!==drag.id)return;const rect=canvas.getBoundingClientRect();layers[drag.name].x=drag.lx+(e.clientX-drag.x)/rect.width;layers[drag.name].y=drag.ly+(e.clientY-drag.y)/rect.height;render();});
 for(const type of ['pointerup','pointercancel','lostpointercapture'])canvas.addEventListener(type,()=>drag=null);
 let exportFile=null, exportUrl=null;
