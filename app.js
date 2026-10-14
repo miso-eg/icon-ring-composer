@@ -8,14 +8,12 @@ function drawLayer(context,name,n){
   const image=layer.image, scale=name==='ring'?1:value('iconScale')/100;
   const fit=name==='icon'?Math.max(n/image.width,n/image.height):Math.min(n/image.width,n/image.height);
   context.save();context.translate(n/2+layer.x*n,n/2+layer.y*n);context.rotate(name==='ring'?0:value('iconAngle')*Math.PI/180);
-  if(name==='icon'&&$('iconBgMode').value==='color'){
-    context.fillStyle=$(name+'BgColor').value;
-    context.fillRect(-image.width*fit*scale/2,-image.height*fit*scale/2,image.width*fit*scale,image.height*fit*scale);
-  }
   context.drawImage(image,-image.width*fit*scale/2,-image.height*fit*scale/2,image.width*fit*scale,image.height*fit*scale);context.restore();
 }
 function render(context=ctx,n=canvas.width){
-  context.clearRect(0,0,n,n);context.save();
+  context.clearRect(0,0,n,n);
+  if($('bgMode').value==='color'){context.fillStyle=$('bgColor').value;context.fillRect(0,0,n,n);}
+  context.save();
   if($('clip').checked){context.beginPath();context.arc(n/2,n/2,n/2,0,Math.PI*2);context.clip();}
   drawLayer(context,'icon',n);context.restore();
   drawLayer(context,'ring',n);
@@ -27,13 +25,13 @@ async function load(name,file){
   const url=URL.createObjectURL(file),image=new Image();
   try{image.src=url;await image.decode();if(version!==versions[name])return;
     layers[name]={image,x:0,y:0};if(name==='icon'){$('iconScale').value=100;$('iconAngle').value=0;}update();
-    $('showImage').disabled=!(layers.icon.image&&layers.ring.image);$('status').textContent=layers.icon.image&&layers.ring.image?'画像を読み込みました。位置やサイズを調整できます。':'アイコン画像を読み込みました。リング画像は任意で追加できます。';
+    $('showImage').disabled=!layers.icon.image;$('status').textContent=layers.icon.image?'画像を読み込みました。位置やサイズを調整できます。':'アイコン画像を選んでください。';
   }catch{if(version===versions[name])$('status').textContent='画像を読み込めませんでした。別の画像を選んでください。';}
   finally{URL.revokeObjectURL(url);}
 }
-function update(){ $('iconScaleValue').textContent=value('iconScale')+'%';$('iconAngleValue').textContent=value('iconAngle')+'°';$('iconBgColor').disabled=$('iconBgMode').value==='transparent';render();}
+function update(){ $('iconScaleValue').textContent=value('iconScale')+'%';$('iconAngleValue').textContent=value('iconAngle')+'°';$('bgColor').disabled=$('bgMode').value==='transparent';render();}
 for(const name of ['icon','ring'])$(name+'File').addEventListener('change',e=>load(name,e.target.files[0]));
-for(const id of ['iconScale','iconAngle','clip','iconBgMode','iconBgColor'])$(id).addEventListener('input',update);
+for(const id of ['iconScale','iconAngle','clip','bgMode','bgColor'])$(id).addEventListener('input',update);
 $('reset').addEventListener('click',()=>{layers.icon.x=layers.icon.y=0;$('iconScale').value=100;$('iconAngle').value=0;update();});
 let drag=null;
 canvas.addEventListener('pointerdown',e=>{const name='icon';if(!layers.icon.image)return;drag={id:e.pointerId,name,x:e.clientX,y:e.clientY,lx:layers.icon.x,ly:layers.icon.y};canvas.setPointerCapture(e.pointerId);});
@@ -65,4 +63,4 @@ $('shareImage').addEventListener('click',async()=>{
 });
 render();
 
-removeRing.addEventListener('click',()=>{versions.ring++;layers.ring={image:null,x:0,y:0};ringFile.value='';showImage.disabled=!layers.icon.image;render();status.textContent='リング画像を削除しました。';});
+$('removeRing').addEventListener('click',()=>{versions.ring++;layers.ring={image:null,x:0,y:0};$('ringFile').value='';$('showImage').disabled=!layers.icon.image;render();$('status').textContent='リング画像を削除しました。';});
